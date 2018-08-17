@@ -7,9 +7,11 @@ contract Loonie {
     // Public variables of the token
     string public name;
     string public symbol;
+    string public standard = "Loonie v1.0";
     uint8 public decimals = 18;
     // 18 decimals is the strongly suggested default, avoid changing it
     uint256 public totalSupply;
+
 
     // This creates an array with all balances
     mapping (address => uint256) public balanceOf;
@@ -36,8 +38,8 @@ contract Loonie {
     ) public {
         totalSupply = initialSupply * 10 ** uint256(decimals);  // Update total supply with the decimal amount
         balanceOf[msg.sender] = totalSupply;                // Give the creator all initial tokens
-        name = "Loonie";                                   // Set the name for display purposes
-        symbol = "LNI";                               // Set the symbol for display purposes
+        name = tokenName;                                   // Set the name for display purposes
+        symbol = tokenSymbol;                               // Set the symbol for display purposes
     }
 
     /**
