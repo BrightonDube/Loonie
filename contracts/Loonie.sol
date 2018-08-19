@@ -1,5 +1,11 @@
-pragma solidity ^0.4.19;
-
+pragma solidity ^0.4.24;
+/**
+ * This is the Loonie Token
+ * The utility token for the Loonie platform
+ * @author Insculpt Inc.
+ */
+ 
+ 
 /**
  * @title SafeMath
  * @dev Math operations with safety checks that revert on error
@@ -70,8 +76,6 @@ interface tokenRecipient { function receiveApproval(address _from, uint256 _valu
  */
 contract Ownable {
 	address public _owner;
-
-
     /**
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
      * account.
@@ -97,7 +101,6 @@ contract Loonie is Ownable{
     // Public variables of the token
     string public name;
     string public symbol;
-    string public standard = "Loonie v1.0";
     uint8 public decimals = 18;
     uint public chainStartTime;
     uint public chainStartBlockNumber;
@@ -153,7 +156,7 @@ contract Loonie is Ownable{
         name = tokenName;                                   // Set the name for display purposes
         symbol = tokenSymbol;  
         chainStartTime = now; //Original Time
-        chainStartBlockNumber = 0; //Original Block
+        chainStartBlockNumber = getBlockNumber(); //Original Block
 
                                     
     }
@@ -203,6 +206,7 @@ contract Loonie is Ownable{
      * @param _value the amount to send
      */
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        
         require(_value <= allowance[_from][msg.sender]);     // Check allowance
         allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);
         _transfer(_from, _to, _value);
@@ -219,6 +223,7 @@ contract Loonie is Ownable{
      */
     function approve(address _spender, uint256 _value) public
         returns (bool success) {
+            
         allowance[msg.sender][_spender] = _value;
         emit Approval(msg.sender, _spender, _value);
         return true;
@@ -236,6 +241,7 @@ contract Loonie is Ownable{
     function approveAndCall(address _spender, uint256 _value, bytes _extraData)
         public
         returns (bool success) {
+        
         tokenRecipient spender = tokenRecipient(_spender);
         if (approve(_spender, _value)) {
             spender.receiveApproval(msg.sender, _value, this, _extraData);
@@ -243,10 +249,7 @@ contract Loonie is Ownable{
         }
     }
 
-    function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
-        return allowance[_owner][_spender];
-    }
-
+   
     function mint() canPoSMint public returns (bool) {
         if(balanceOf[msg.sender] <= 0) return false;
         if(transferIns[msg.sender].length <= 0) return false;
@@ -319,28 +322,28 @@ contract Loonie is Ownable{
         stakeStartTime = timestamp;
     }
 
-    function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
-        require(_recipients.length > 0 && _recipients.length == _values.length);
+    // function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
+    //     require(_recipients.length > 0 && _recipients.length == _values.length);
 
-        uint total = 0;
-        for(uint i = 0; i < _values.length; i++){
-            total = total.add(_values[i]);
-        }
-        require(total <= balanceOf[msg.sender]);
+    //     uint total = 0;
+    //     for(uint i = 0; i < _values.length; i++){
+    //         total = total.add(_values[i]);
+    //     }
+    //     require(total <= balanceOf[msg.sender]);
 
-        uint64 _now = uint64(now);
-        for(uint j = 0; j < _recipients.length; j++){
-            balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
-            transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
-            emit Transfer(msg.sender, _recipients[j], _values[j]);
-        }
+    //     uint64 _now = uint64(now);
+    //     for(uint j = 0; j < _recipients.length; j++){
+    //         balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
+    //         transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
+    //         emit Transfer(msg.sender, _recipients[j], _values[j]);
+    //     }
 
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
-        if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
-        if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
+    //     balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
+    //     if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
+    //     if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
 
-        return true;
-    }
+    //     return true;
+    // }
     /**
      * Destroy tokens
      *
@@ -349,6 +352,7 @@ contract Loonie is Ownable{
      * @param _value the amount of money to burn
      */
     function burn(uint256 _value) public returns (bool success) {
+        
         require(balanceOf[msg.sender] >= _value && _value > 0);   // Check if the sender has enough
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);            // Subtract from the sender
         totalSupply = totalSupply.sub(_value);                      // Updates totalSupply
@@ -364,11 +368,11 @@ contract Loonie is Ownable{
      * @param _from the address of the sender
      * @param _value the amount of money to burn
      */
-    function burnFrom(address _from, uint256 _value) public returns (bool success) {
+    function burnFrom(address _from, uint256 _value) onlyOwner public returns (bool success) {
         require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
-        require(_value <= allowance[_from][msg.sender]);    // Check allowance
+        //require(_value <= allowance[_from][msg.sender]);    // Check allowance
         balanceOf[_from] = balanceOf[_from].sub(_value);                         // Subtract from the targeted balance
-        allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
+        //allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
         totalSupply = totalSupply.sub(_value);                              // Update totalSupply
         emit Burn(_from, _value);
         return true;
