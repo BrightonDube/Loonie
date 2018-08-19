@@ -143,12 +143,12 @@ contract Loonie is Ownable{
      */
     constructor(
         uint256 initialSupply,
-        uint256 maxTotalSupply,
+        uint256 maxiTotalSupply,
         string tokenName,
         string tokenSymbol
     ) public {
         totalSupply = initialSupply.mul(10 ** uint256(decimals));  // Update total supply with the decimal amount
-        maxTotalSupply = maxTotalSupply.mul(10 ** uint256(decimals)); // set the max total supply to ever exist
+        maxTotalSupply = maxiTotalSupply.mul(10 ** uint256(decimals)); // set the max total supply to ever exist
         balanceOf[_owner] = totalSupply;                // Give the creator all initial tokens
         name = tokenName;                                   // Set the name for display purposes
         symbol = tokenSymbol;  
