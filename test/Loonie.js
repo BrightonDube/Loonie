@@ -11,12 +11,19 @@ contract('Loonie', function(accounts){
             return tokenIstance.decimals();
            }).then(function(decimals){
             assert.equal(decimals, 18);
+            var result = tokenIstance.burn.call(1000);
+            return result;
+           }).then(function(burn){
+            assert.equal(tokenIstance.balanceOf(accounts[1]), (tokenIstance.totalSupply()-1000), "The tokens were burned");
            });
     })
     it("sets the symbol upon deployment", function(){
     	return Loonie.deployed().then(function(ins){ tokenIns = ins;
     	    return tokenIns.symbol()}).then(function(symbol){
     	    	assert.equal(symbol, "LNI", "Sets the symbol to LNI");
-    	    });
+                return tokenIns.transfer.call(accounts[1], 1000000000);
+    	    }).then(function(transfer){
+                assert.equal(tokenIns.balanceOf(accounts[1]),1000000000 , "The transfer was successful");
+            });
     })
 });

@@ -76,7 +76,7 @@ contract Ownable {
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
      * account.
      */
-    constructor() {
+    constructor() public {
         _owner = msg.sender;
     }
 
@@ -87,22 +87,37 @@ contract Ownable {
     modifier onlyOwner() {
         require(msg.sender == _owner);
         _;
+    }
 }
 
-contract Loonie is Ownable {
+
+contract Loonie is Ownable{
 	using SafeMath for uint256;
+
     // Public variables of the token
     string public name;
     string public symbol;
     string public standard = "Loonie v1.0";
     uint8 public decimals = 18;
+    uint public chainStartTime;
+    uint public chainStartBlockNumber;
+    uint public stakeStartTime;
+    uint public stakeMinAge = 3 days;
+    uint public stakeMaxAge = 90 days;
+    uint public maxMintProofOfStake = 10**17;
     // 18 decimals is the strongly suggested default, avoid changing it
     uint256 public totalSupply;
+    uint256 public maxTotalSupply;
+    
+    struct transferInStruct{ // keeps track of individual transfers
+        uint128 amount;
+        uint64 time;
+    }
 
-
-    // This creates an array with all balances
+    // This creates an array with all balanceOf
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
+    mapping (address => transferInStruct[]) public transferIns;
 
     // This generates a public event on the blockchain that will notify clients
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -113,6 +128,14 @@ contract Loonie is Ownable {
     // This notifies clients about the amount burnt
     event Burn(address indexed from, uint256 value);
 
+    // This notifies clients about the minted amount
+    event Mint(address indexed _address, uint _reward);
+
+    //This checks if there it's still possible to mine the token
+	modifier canPoSMint() {
+	        require(totalSupply < maxTotalSupply);
+	        _;
+	    }
     /**
      * Constructor function
      *
@@ -120,13 +143,19 @@ contract Loonie is Ownable {
      */
     constructor(
         uint256 initialSupply,
+        uint256 maxTotalSupply,
         string tokenName,
         string tokenSymbol
     ) public {
         totalSupply = initialSupply.mul(10 ** uint256(decimals));  // Update total supply with the decimal amount
-        balanceOf[msg.sender] = totalSupply;                // Give the creator all initial tokens
+        maxTotalSupply = maxTotalSupply.mul(10 ** uint256(decimals)); // set the max total supply to ever exist
+        balanceOf[_owner] = totalSupply;                // Give the creator all initial tokens
         name = tokenName;                                   // Set the name for display purposes
-        symbol = tokenSymbol;                               // Set the symbol for display purposes
+        symbol = tokenSymbol;  
+        chainStartTime = now; //Original Time
+        chainStartBlockNumber = 0; //Original Block
+
+                                    
     }
 
     /**
@@ -140,14 +169,15 @@ contract Loonie is Ownable {
         // Check for overflows
         require(balanceOf[_to].add(_value) >= balanceOf[_to]);
         // Save this for an assertion in the future
-        uint previousBalances = balanceOf[_from].add(balanceOf[_to]);
+        //if(_from == _to) return mint();
+        uint previousBalanceOfbalanceOf = balanceOf[_from].add(balanceOf[_to]);
         // Subtract from the sender
         balanceOf[_from] = balanceOf[_from].sub(_value);
         // Add the same to the recipient
         balanceOf[_to] = balanceOf[_to].add(_value);
         emit Transfer(_from, _to, _value);
         // Asserts are used to use static analysis to find bugs in your code. They should never fail
-        assert(balanceOf[_from].add(balanceOf[_to]) == previousBalances);
+        assert(balanceOf[_from].add(balanceOf[_to]) == previousBalanceOfbalanceOf);
     }
 
     /**
@@ -162,7 +192,7 @@ contract Loonie is Ownable {
         _transfer(msg.sender, _to, _value);
         return true;
     }
-
+    
     /**
      * Transfer tokens from other address
      *
@@ -213,6 +243,104 @@ contract Loonie is Ownable {
         }
     }
 
+    function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
+        return allowance[_owner][_spender];
+    }
+
+    function mint() canPoSMint public returns (bool) {
+        if(balanceOf[msg.sender] <= 0) return false;
+        if(transferIns[msg.sender].length <= 0) return false;
+
+        uint reward = getProofOfStakeReward(msg.sender);
+        if(reward <= 0) return false;
+
+        totalSupply = totalSupply.add(reward);
+        balanceOf[msg.sender] = balanceOf[msg.sender].add(reward);
+        delete transferIns[msg.sender];
+        transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),uint64(now)));
+
+        emit Mint(msg.sender, reward);
+        return true;
+    }
+
+    function getBlockNumber() public view returns (uint blockNumber) {
+        blockNumber = block.number.sub(chainStartBlockNumber);
+    }
+
+    function coinAge() public view returns (uint myCoinAge) {
+        myCoinAge = getCoinAge(msg.sender,now);
+    }
+
+    function annualInterest() public view returns(uint interest) {
+        uint _now = now;
+        interest = maxMintProofOfStake;
+        if((_now.sub(stakeStartTime)).div(365 days) == 0) {
+            interest = (770 * maxMintProofOfStake).div(100);
+        } else if((_now.sub(stakeStartTime)).div(365 days) == 1){
+            interest = (435 * maxMintProofOfStake).div(100);
+        }
+    }
+
+    function getProofOfStakeReward(address _address) internal view returns (uint) {
+        require((now >= stakeStartTime) && (stakeStartTime > 0) );
+
+        uint _now = now;
+        uint _coinAge = getCoinAge(_address, _now);
+        if(_coinAge <= 0) return 0;
+
+        uint interest = maxMintProofOfStake;
+
+        if((_now.sub(stakeStartTime)).div(365 days) == 0) {
+
+            interest = (770 * maxMintProofOfStake).div(100);
+        } else if((_now.sub(stakeStartTime)).div(365 days) == 1){
+
+            interest = (435 * maxMintProofOfStake).div(100);
+        }
+
+        return (_coinAge * interest).div(365 * (10**decimals));
+    }
+
+    function getCoinAge(address _address, uint _now) internal view returns (uint _coinAge) {
+        if(transferIns[_address].length <= 0) return 0;
+
+        for (uint i = 0; i < transferIns[_address].length; i++){
+            if( _now < uint(transferIns[_address][i].time).add(stakeMinAge) ) continue;
+
+            uint nCoinSeconds = _now.sub(uint(transferIns[_address][i].time));
+            if( nCoinSeconds > stakeMaxAge ) nCoinSeconds = stakeMaxAge;
+
+            _coinAge = _coinAge.add(uint(transferIns[_address][i].amount) * nCoinSeconds.div(1 days));
+        }
+    }
+
+    function ownerSetStakeStartTime(uint timestamp) onlyOwner public {
+        require((stakeStartTime <= 0) && (timestamp >= chainStartTime));
+        stakeStartTime = timestamp;
+    }
+
+    function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
+        require(_recipients.length > 0 && _recipients.length == _values.length);
+
+        uint total = 0;
+        for(uint i = 0; i < _values.length; i++){
+            total = total.add(_values[i]);
+        }
+        require(total <= balanceOf[msg.sender]);
+
+        uint64 _now = uint64(now);
+        for(uint j = 0; j < _recipients.length; j++){
+            balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
+            transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
+            emit Transfer(msg.sender, _recipients[j], _values[j]);
+        }
+
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
+        if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
+        if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
+
+        return true;
+    }
     /**
      * Destroy tokens
      *
@@ -221,7 +349,7 @@ contract Loonie is Ownable {
      * @param _value the amount of money to burn
      */
     function burn(uint256 _value) public returns (bool success) {
-        require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
+        require(balanceOf[msg.sender] >= _value && _value > 0);   // Check if the sender has enough
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(_value);            // Subtract from the sender
         totalSupply = totalSupply.sub(_value);                      // Updates totalSupply
         emit Burn(msg.sender, _value);
