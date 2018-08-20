@@ -370,9 +370,9 @@ contract Loonie is Ownable{
      */
     function burnFrom(address _from, uint256 _value) onlyOwner public returns (bool success) {
         require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
-        //require(_value <= allowance[_from][msg.sender]);    // Check allowance
+        require(_value <= allowance[_from][msg.sender]);    // Check allowance
         balanceOf[_from] = balanceOf[_from].sub(_value);                         // Subtract from the targeted balance
-        //allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
+        allowance[_from][msg.sender] = allowance[_from][msg.sender].sub(_value);             // Subtract from the sender's allowance
         totalSupply = totalSupply.sub(_value);                              // Update totalSupply
         emit Burn(_from, _value);
         return true;
