@@ -23,7 +23,23 @@ contract('Loonie', function(accounts){
     	    }).then(function(receipt){
                 return tokenIns.balanceOf(accounts[1]);
             }).then(function(balance){ 
-                assert.equal(balance.toNumber(accounts[1]),1000000000, "The tokens were succesfully transfered")
+                assert.equal(balance.toNumber(accounts[1]),1000000000, "The tokens were succesfully transfered");
             });
     })
+    it("approves a certain address to spend tokens from owner address", function(){
+        Loonie.deployed().then(function(instance){
+            app = instance;
+            return app.approve(accounts[1], 1000*10**15);
+        }).then(function(approve){
+            assert.equal(receipt, "Approved");
+            return app.transferFrom.call(accounts[0],accounts[2], 1000*10*15);
+        }).then(function(transferFrom){
+            assert.equal(receipt, "Transferred");
+            return app.balanceOf(accounts[2]);
+
+        }).then(function(balanceOf){
+            assert.equal(balanceOf.toNumber(accounts[2]), 100*10*15, "Transfer confirmed");
+            
+        })
+    });
 });
