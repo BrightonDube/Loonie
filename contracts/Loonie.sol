@@ -4,79 +4,15 @@ pragma solidity ^0.4.24;
  * The utility token for the Loonie platform
  * @author Insculpt Inc.
  */
- 
- import 'zeppelin-solidity/contracts/math/SafeMath.sol';
- 
-// /**
-//  * @title SafeMath
-//  * @dev Math operations with safety checks that revert on error
-//  */
-// library SafeMath {
 
-//   /**
-//   * @dev Multiplies two numbers, reverts on overflow.
-//   */
-//   function mul(uint256 _a, uint256 _b) internal pure returns (uint256) {
-//     // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-//     // benefit is lost if 'b' is also tested.
-//     // See: https://github.com/OpenZeppelin/openzeppelin-solidity/pull/522
-//     if (_a == 0) {
-//       return 0;
-//     }
-
-//     uint256 c = _a * _b;
-//     require(c / _a == _b);
-
-//     return c;
-//   }
-
-//   /**
-//   * @dev Integer division of two numbers truncating the quotient, reverts on division by zero.
-//   */
-//   function div(uint256 _a, uint256 _b) internal pure returns (uint256) {
-//     require(_b > 0); // Solidity only automatically asserts when dividing by 0
-//     uint256 c = _a / _b;
-//     // assert(_a == _b * c + _a % _b); // There is no case in which this doesn't hold
-
-//     return c;
-//   }
-
-//   /**
-//   * @dev Subtracts two numbers, reverts on overflow (i.e. if subtrahend is greater than minuend).
-//   */
-//   function sub(uint256 _a, uint256 _b) internal pure returns (uint256) {
-//     require(_b <= _a);
-//     uint256 c = _a - _b;
-
-//     return c;
-//   }
-
-//   /**
-//   * @dev Adds two numbers, reverts on overflow.
-//   */
-//   function add(uint256 _a, uint256 _b) internal pure returns (uint256) {
-//     uint256 c = _a + _b;
-//     require(c >= _a);
-
-//     return c;
-//   }
-
-//   /**
-//   * @dev Divides two numbers and returns the remainder (unsigned integer modulo),
-//   * reverts when dividing by zero.
-//   */
-//   function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-//     require(b != 0);
-//     return a % b;
-//   }
-// }
+import "./SafeMath.sol";
 
 interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) external; }
 /**
  * The Ownable contract does this and that...
  */
 contract Ownable {
-	address public _owner;
+    address public _owner;
     /**
      * @dev The Ownable constructor sets the original `owner` of the contract to the sender
      * account.
@@ -156,7 +92,7 @@ contract Loonie is Ownable{
         balanceOf[_owner] = totalSupply;                // Give the creator all initial tokens
         name = tokenName;                                   // Set the name for display purposes
         symbol = tokenSymbol;  
-        chainStartTime = now; //Original Time
+        chainStartTime = block.timestamp; //Original Time
         chainStartBlockNumber = getBlockNumber(); //Original Block
 
                                     
@@ -319,7 +255,7 @@ contract Loonie is Ownable{
     }
 
     function ownerSetStakeStartTime(uint timestamp) public onlyOwner {
-        require((stakeStartTime <= 0) && (timestamp >= chainStartTime), "The time is not enough");
+        require((stakeStartTime <= 0) && (timestamp >= chainStartTime), "The time is not correct");
         stakeStartTime = timestamp;
     }
 
@@ -358,27 +294,27 @@ contract Loonie is Ownable{
         return true;
     }
 
-       // function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
-    //     require(_recipients.length > 0 && _recipients.length == _values.length);
+       function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
+        require(_recipients.length > 0 && _recipients.length == _values.length);
 
-    //     uint total = 0;
-    //     for(uint i = 0; i < _values.length; i++){
-    //         total = total.add(_values[i]);
-    //     }
-    //     require(total <= balanceOf[msg.sender]);
+        uint total = 0;
+        for(uint i = 0; i < _values.length; i++){
+            total = total.add(_values[i]);
+        }
+        require(total <= balanceOf[msg.sender]);
 
-    //     uint64 _now = uint64(now);
-    //     for(uint j = 0; j < _recipients.length; j++){
-    //         balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
-    //         transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
-    //         emit Transfer(msg.sender, _recipients[j], _values[j]);
-    //     }
+        uint64 _now = uint64(now);
+        for(uint j = 0; j < _recipients.length; j++){
+            balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
+            transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
+            emit Transfer(msg.sender, _recipients[j], _values[j]);
+        }
 
-    //     balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
-    //     if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
-    //     if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
+        if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
+        if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
 
-    //     return true;
-    // }
+        return true;
+    }
 }
 

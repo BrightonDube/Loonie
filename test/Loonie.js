@@ -13,7 +13,12 @@ contract('Loonie', function(accounts){
                return tokenIstance.balanceOf(accounts[0]);
            }) .then(function(balance){
             assert.equal(balance.toNumber(accounts[0]), (1000 * 10 ** 18) - (1 * 10 ** 18), "The tokens were burned");
-           });
+            accs = [accounts[1],accounts[2]];
+            amnts = [2000000000000000000,2000];
+           // return tokenIstance.batchTransfer(accs, amnts);
+           })//.then(function(receipt){
+        //        assert.equal(receipt, "The numbers don't add up");
+        //    }) ;
     })
     it("sets the symbol upon deployment", function(){
     	return Loonie.deployed().then(function(ins){ tokenIns = ins;
