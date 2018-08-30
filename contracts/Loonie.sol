@@ -187,12 +187,12 @@ contract Loonie is Ownable{
     }
 
    
-    function mint() canPoSMint public returns (bool) {
+    function mint() public canPoSMint returns (bool) {
         if(balanceOf[msg.sender] <= 0) return false;
         if(transferIns[msg.sender].length <= 0) return false;
 
         uint reward = getProofOfStakeReward(msg.sender);
-        if(reward <= 0) return false;
+        require(reward > 0, "You don't have enough rewards");
 
         totalSupply = totalSupply.add(reward);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(reward);
@@ -294,27 +294,5 @@ contract Loonie is Ownable{
         return true;
     }
 
-       function batchTransfer(address[] _recipients, uint[] _values) onlyOwner public returns (bool) {
-        require(_recipients.length > 0 && _recipients.length == _values.length);
-
-        uint total = 0;
-        for(uint i = 0; i < _values.length; i++){
-            total = total.add(_values[i]);
-        }
-        require(total <= balanceOf[msg.sender]);
-
-        uint64 _now = uint64(now);
-        for(uint j = 0; j < _recipients.length; j++){
-            balanceOf[_recipients[j]] = balanceOf[_recipients[j]].add(_values[j]);
-            transferIns[_recipients[j]].push(transferInStruct(uint128(_values[j]),_now));
-            emit Transfer(msg.sender, _recipients[j], _values[j]);
-        }
-
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(total);
-        if(transferIns[msg.sender].length > 0) delete transferIns[msg.sender];
-        if(balanceOf[msg.sender] > 0) transferIns[msg.sender].push(transferInStruct(uint128(balanceOf[msg.sender]),_now));
-
-        return true;
-    }
 }
 

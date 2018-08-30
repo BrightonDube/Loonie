@@ -15,7 +15,7 @@ contract(LoonieTokenSale, function(accounts){
         assert.notEqual(address, "0x0", "has a token address");
     });
 
-    });
+    })
     it("Buys tokens", function(){
         return LoonieTokenSale.deployed().then(function(instant){
             app1 = instant;

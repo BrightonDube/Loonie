@@ -8,52 +8,36 @@ pragma solidity ^0.4.24;
 import "./Loonie.sol";
 import "./SafeMath.sol";
 
-contract LoonieTokenSale {
-    using SafeMath for uint256;
+contract LoonieTokenSale is Loonie, SafeMath {
+    using SafeMath for uint;
 
     address admin;
-
-    uint8 public tokenSaleStart;
-    uint8 public tokeSaleEnd;
-    uint  public targetAmount;
-    uint  public weiRaised;
-    uint  public price;
+    uint  public tokenPrice;
     uint  public tokensSold;
-    // Instantiates the token contract within the sale contract to 
-    Loonie public loonieToken;
+    event Sell(address indexed _buyer, uint _amount );
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    
-    constructor(
-    Loonie _loonieToken
-    )
-    public {
-        loonieToken = _loonieToken;
+    constructor( ) public {
         admin = msg.sender;
-        price = 35000000000; // in wei
+        tokenPrice = 35000000000; // in wei
     }
     modifier onlyAdmin() {
         require(msg.sender == admin, "Only admin can perform this action");
         _;
     }
+    
     /**
-    determines how many tokens a buyer will get based on the price
+    determines how many tokens a buyer will get based on the tokenPrice
     then sends the tokens to the sender
     @param _tokenAmount amount of tokens the buyer wants
-    @param _value the value of the tokens is wei
+    
      */
-    function buyToken(uint _tokenAmount, uint _value) public  payable returns(bool success) {
-       // require( _tokenAmount = ( _value.div(price)), "Enter the correct amount of tokens");
-       // require(loonieToken.allowance[admin][loonieToken.owner] >= 0, "Send more ether");
+    function buyTokens(uint _tokenAmount) public  payable returns(bool success) {
+        require(msg.value = _tokenAmount.mul(tokenPrice), "Enter the correct amount of tokens");
+        require(balanceOf(address), "The tokens are depleted");
         //keeps track of tokens sold
-        tokensSold = tokensSold.add(_value);
-
-        // if(_tokenAmount < price.mul(100)){
-        //     balances(_sender) = balances(_sender).add(_sentAmount);
-            
-        // }
-        loonieToken.transfer(msg.sender, _tokenAmount);
-        emit Transfer(admin, msg.sender, _tokenAmount);
+        tokensSold = tokensSold.add(_tokenAmount);       
+        require(transfer(msg.sender, _tokenAmount), "Unsucceful");
+        emit Sell(msg.sender, _tokenAmount);
         return true;
     }
 
