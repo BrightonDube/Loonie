@@ -5,35 +5,13 @@ pragma solidity ^0.4.24;
  * @author Insculpt Inc.
  */
 
-import "./SafeMath.sol";
+import "";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 interface tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) external; }
-/**
- * The Ownable contract does this and that...
- */
-contract Ownable {
-    address public _owner;
-    /**
-     * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-     * account.
-     */
-    constructor() public {
-        _owner = msg.sender;
-    }
-
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        require(msg.sender == _owner);
-        _;
-    }
-}
-
 
 contract Loonie is Ownable{
-	using SafeMath for uint256;
+    using SafeMath for uint256;
 
     // Public variables of the token
     string public name;
@@ -89,7 +67,7 @@ contract Loonie is Ownable{
     ) public {
         totalSupply = initialSupply.mul(10 ** uint256(decimals));  // Update total supply with the decimal amount
         maxTotalSupply = maxiTotalSupply.mul(10 ** uint256(decimals)); // set the max total supply to ever exist
-        balanceOf[_owner] = totalSupply;                // Give the creator all initial tokens
+        balanceOf[owner] = totalSupply;                // Give the creator all initial tokens
         name = tokenName;                                   // Set the name for display purposes
         symbol = tokenSymbol;  
         chainStartTime = block.timestamp; //Original Time

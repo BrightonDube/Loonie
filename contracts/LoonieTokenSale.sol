@@ -6,14 +6,16 @@ pragma solidity ^0.4.24;
 * @author insculpt
 */
 import "./Loonie.sol";
-import "./SafeMath.sol";
+//import "./SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract LoonieTokenSale is Loonie, SafeMath {
+contract LoonieTokenSale is Loonie{
     using SafeMath for uint;
 
     address admin;
     uint  public tokenPrice;
     uint  public tokensSold;
+    bool  public closed = false;
     event Sell(address indexed _buyer, uint _amount );
 
     constructor( ) public {
@@ -24,6 +26,7 @@ contract LoonieTokenSale is Loonie, SafeMath {
         require(msg.sender == admin, "Only admin can perform this action");
         _;
     }
+
     
     /**
     determines how many tokens a buyer will get based on the tokenPrice
@@ -32,15 +35,23 @@ contract LoonieTokenSale is Loonie, SafeMath {
     
      */
     function buyTokens(uint _tokenAmount) public  payable returns(bool success) {
-        require(msg.value = _tokenAmount.mul(tokenPrice), "Enter the correct amount of tokens");
-        require(balanceOf(address), "The tokens are depleted");
+        require(!closed, "TokenSale is closed");
+        //require(msg.value = _tokenAmount.mul(tokenPrice), "Enter the correct amount of tokens");
+        require(balanceOf(this), "The tokens are depleted");
         //keeps track of tokens sold
         tokensSold = tokensSold.add(_tokenAmount);       
-        require(transfer(msg.sender, _tokenAmount), "Unsucceful");
+        require(transfer(msg.sender, _tokenAmount), "Unsuccefull");
         emit Sell(msg.sender, _tokenAmount);
         return true;
     }
 
+    function endSale() public onlyAdmin returns(bool success){
+        require(balanceOf(this) >= 0, "All tokens sold");
+        require(transfer(admin, balanceOf(this)), "Failed to end Sale");
+        emit Transfer(this, admin, balanceOf(this));
+        closed = true;
+        return true;
+    }
 
 
 }
